@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    // Required for the project reference from apps/api.
+    "composite": true,
+    // Keep the incremental cache inside dist/. Left in the package root, a
+    // `rm -rf dist` leaves it behind and the next build is a silent no-op
+    // against a cache that claims the outputs already exist.
+    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo"
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts"]
+}
