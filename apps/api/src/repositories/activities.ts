@@ -1,4 +1,5 @@
 import type {
+  RiskFinding,
   Activity,
   ActivityStatus,
   Classification,
@@ -31,6 +32,7 @@ interface ActivityRow {
   created_at: string;
   resolved_at: string | null;
   error: string | null;
+  risk: string;
 }
 
 function toDomain(row: ActivityRow): Activity {
@@ -60,6 +62,7 @@ function toDomain(row: ActivityRow): Activity {
     createdAt: row.created_at,
     resolvedAt: row.resolved_at,
     error: row.error,
+    risk: decodeJson<Activity['risk']>(row.risk ?? '[]', []),
   };
 }
 
@@ -71,6 +74,8 @@ export interface CreateActivityInput {
   draft: DraftEmail | null;
   leadId: string | null;
   propertyId: string | null;
+  /** Guard findings, if a guard is installed. */
+  risk?: RiskFinding[];
 }
 
 export class ActivityRepository {
@@ -138,7 +143,13 @@ export class ActivityRepository {
       createdAt: nowIso(),
       resolvedAt: null,
       error: null,
+      risk: input.risk ?? [],
     };
+    // A critical guard finding parks the item instead of queueing it for a
+    // routine one-click approval.
+    if (activity.risk.some((f) => f.level === 'critical')) {
+      activity.status = 'held';
+    }
 
     const result = this.db
       .prepare(
@@ -146,12 +157,12 @@ export class ActivityRepository {
            id, status, external_id, from_name, from_email, subject, body, received_at,
            intent, sentiment, confidence, classifier, signals,
            rationale, proposed_actions, draft, lead_id, property_id,
-           created_at, resolved_at, error
+           created_at, resolved_at, error, risk
          ) VALUES (
            @id, @status, @externalId, @fromName, @fromEmail, @subject, @body, @receivedAt,
            @intent, @sentiment, @confidence, @classifier, @signals,
            @rationale, @proposedActions, @draft, @leadId, @propertyId,
-           @createdAt, @resolvedAt, @error
+           @createdAt, @resolvedAt, @error, @risk
          )`,
       )
       .run({
@@ -174,6 +185,7 @@ export class ActivityRepository {
         leadId: activity.leadId,
         propertyId: activity.propertyId,
         createdAt: activity.createdAt,
+        risk: encodeJson(activity.risk),
         resolvedAt: activity.resolvedAt,
         error: activity.error,
       });

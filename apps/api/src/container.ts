@@ -14,6 +14,7 @@ import { DocumentService } from './services/documents.js';
 import { GmailInboxProvider } from './services/inbox/gmail.js';
 import { SimulatedInboxProvider } from './services/inbox/simulated.js';
 import type { InboxProvider } from './services/inbox/types.js';
+import type { Guard } from './services/guard/index.js';
 import { IngestionService } from './services/ingestion.js';
 import type { Mailer } from './services/mailer.js';
 import { ConsoleMailer } from './services/mailer.js';
@@ -53,6 +54,9 @@ export interface ContainerOverrides {
   mailer?: Mailer;
   pollIntervalMs?: number;
   maxResults?: number;
+  /** Safety layer. Loaded by the entrypoint; absent in tests by default. */
+  guard?: Guard | null;
+  knownDomains?: readonly string[];
 }
 
 function createInboxProvider(): InboxProvider {
@@ -88,6 +92,7 @@ export function createContainer(overrides: ContainerOverrides = {}): Container {
     classifier,
     mailer,
     activity: new ActivityService({
+      guard: overrides.guard ?? null,
       activities: repositories.activities,
       leads: repositories.leads,
       audit: repositories.audit,
@@ -107,6 +112,8 @@ export function createContainer(overrides: ContainerOverrides = {}): Container {
       agent,
       pollIntervalMs: overrides.pollIntervalMs ?? env.INBOX_POLL_INTERVAL_MS,
       maxResults: overrides.maxResults ?? env.INBOX_MAX_RESULTS,
+      guard: overrides.guard ?? null,
+      knownDomains: overrides.knownDomains ?? env.KNOWN_DOMAINS,
     }),
   };
 

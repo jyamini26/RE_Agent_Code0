@@ -3,8 +3,13 @@ import { logger } from './logger.js';
 import { SERVICE_VERSION, env } from './config.js';
 import { createContainer } from './container.js';
 import { seedIfEmpty } from './db/seed.js';
+import { loadGuard } from './services/guard/index.js';
 
-const container = createContainer();
+// Loaded before the container so the safety layer is in place for the very
+// first poll rather than arriving a beat late.
+const guard = await loadGuard(env.GUARD_MODULE);
+
+const container = createContainer({ guard, knownDomains: env.KNOWN_DOMAINS });
 
 // A fresh clone should show a populated dashboard rather than empty states, so
 // the demo data is planted on first boot. Existing databases are left alone.

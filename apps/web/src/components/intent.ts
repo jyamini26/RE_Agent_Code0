@@ -29,6 +29,7 @@ export const STATUS_LABEL: Record<ActivityStatus, string> = {
   approved: 'Approved',
   dismissed: 'Dismissed',
   failed: 'Failed',
+  held: 'Held',
 };
 
 export const STATUS_TONE: Record<
@@ -39,4 +40,5 @@ export const STATUS_TONE: Record<
   approved: 'positive',
   dismissed: 'neutral',
   failed: 'critical',
+  held: 'critical',
 };

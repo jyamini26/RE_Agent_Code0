@@ -16,6 +16,37 @@ export interface Fixture extends Omit<InboundMessage, 'receivedAt'> {
 
 export const INBOX_FIXTURES: readonly Fixture[] = [
   {
+    // The attack, reproduced faithfully. Note what is *not* wrong with it:
+    // the prose is clean, the signature is right, the timing is plausible,
+    // and it references a real transaction detail. Nothing in the wording
+    // gives it away. The tells are all in the envelope: pacificescrovv.com
+    // is not pacificescrow.com, the account differs from the one escrow
+    // stated earlier, and it arrives with a deadline attached.
+    externalId: 'sim-0008',
+    fromName: 'Pacific Coast Escrow',
+    fromEmail: 'closer@pacificescrovv.com',
+    subject: 'URGENT: Updated wiring instructions for 418 Aldergrove Lane',
+    body: `Good morning,
+
+Please note our wiring instructions have been updated as of this morning. Our previous account is no longer receiving funds and any transfer sent there will be returned.
+
+Kindly disregard the instructions sent earlier this week and remit the closing funds to:
+
+  Beneficiary: Pacific Coast Escrow Trust
+  Bank: First Meridian National
+  Routing: 021000021
+  Account: 4471903328
+
+We must receive the wire before close of business today to keep the closing on schedule. Please confirm once sent.
+
+Regards,
+Lauren Whitfield
+Senior Closing Officer
+Pacific Coast Escrow`,
+    receivedMinutesAgo: 6,
+    aboutAddress: '418 Aldergrove Lane',
+  },
+  {
     externalId: 'sim-0001',
     fromName: 'Daniel Okafor',
     fromEmail: 'daniel.okafor@example.com',

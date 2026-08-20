@@ -1,4 +1,5 @@
 import type {
+  RiskFinding,
   Activity,
   DraftEmail,
   LeadStage,
@@ -7,6 +8,7 @@ import type {
 import type { ActivityRepository } from '../repositories/activities.js';
 import type { AuditRepository } from '../repositories/audit.js';
 import type { LeadRepository } from '../repositories/leads.js';
+import type { Guard } from './guard/index.js';
 import type { Mailer } from './mailer.js';
 
 export class ActivityNotFoundError extends Error {
@@ -20,6 +22,23 @@ export class ActivityAlreadyResolvedError extends Error {
   constructor(id: string, status: string) {
     super(`Activity ${id} is already ${status} and cannot be changed`);
     this.name = 'ActivityAlreadyResolvedError';
+  }
+}
+
+/**
+ * Raised when a guard refuses to let outbound copy leave.
+ *
+ * Carries the findings rather than a bare message so the interface can show
+ * the agent exactly which phrase is the problem and what to write instead. A
+ * block with no explanation just teaches people to route around the system.
+ */
+export class DraftBlockedError extends Error {
+  constructor(
+    readonly activityId: string,
+    readonly findings: RiskFinding[],
+  ) {
+    super('This message cannot be sent as written.');
+    this.name = 'DraftBlockedError';
   }
 }
 
@@ -51,6 +70,8 @@ export interface ActivityServiceOptions {
   leads: LeadRepository;
   audit: AuditRepository;
   mailer: Mailer;
+  /** Optional safety layer. Absent in the standalone build. */
+  guard?: Guard | null;
 }
 
 /**
@@ -111,6 +132,31 @@ export class ActivityService {
     const activity = this.requirePending(id);
 
     if (!activity.draft) throw new NothingToSendError(id);
+
+    // The draft is checked here, at the moment of sending, rather than when it
+    // was generated. By this point the agent may have rewritten it, and it is
+    // their words that go out under their licence. Checking only the machine's
+    // original draft would miss the most likely source of a violation.
+    if (this.options.guard) {
+      const verdict = this.options.guard.inspectDraft(activity.draft);
+      if (verdict.hold) {
+        this.options.audit.record({
+          actor: 'system',
+          action: 'activity.held',
+          subjectType: 'activity',
+          subjectId: id,
+          summary: `Blocked send: ${verdict.findings[0]?.title ?? 'compliance violation'}`,
+          detail: {
+            findings: verdict.findings.map((f) => ({
+              id: f.id,
+              detail: f.detail,
+              citation: f.citation,
+            })),
+          },
+        });
+        throw new DraftBlockedError(id, verdict.findings);
+      }
+    }
 
     try {
       await this.options.mailer.send(activity.draft);

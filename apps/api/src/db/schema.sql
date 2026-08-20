@@ -76,7 +76,10 @@ CREATE TABLE IF NOT EXISTS activities (
   property_id       TEXT REFERENCES properties (id) ON DELETE SET NULL,
   created_at        TEXT NOT NULL,
   resolved_at       TEXT,
-  error             TEXT
+  error             TEXT,
+  -- JSON array of guard findings. Empty for an ordinary activity; a critical
+  -- entry here is what places the row in 'held'.
+  risk              TEXT NOT NULL DEFAULT '[]'
 );
 
 CREATE INDEX IF NOT EXISTS idx_activities_status ON activities (status);

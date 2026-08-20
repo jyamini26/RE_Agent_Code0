@@ -8,6 +8,7 @@ import {
   useModifyActivity,
 } from '../lib/queries.js';
 import { INTENT_LABEL, INTENT_TONE, STATUS_LABEL, STATUS_TONE } from './intent.js';
+import { RiskAlert } from './RiskAlert.js';
 import { Badge, Button, Meter, cx } from './primitives.js';
 
 /**
@@ -38,7 +39,11 @@ export function CaseFile({ activity }: { activity: Activity }) {
     setEditing(false);
   }, [draft?.subject, draft?.body]);
 
-  const pending = activity.status === 'pending';
+  const held = activity.status === 'held';
+  const risk = activity.risk ?? [];
+  // A held item offers no one-click actions. The agent must deal with the
+  // finding first; dismissing is still available, approving is not.
+  const pending = activity.status === 'pending' && !held;
   const busy = approve.isPending || dismiss.isPending || modify.isPending;
   const dirty = subject !== (draft?.subject ?? '') || body !== (draft?.body ?? '');
 
@@ -48,6 +53,8 @@ export function CaseFile({ activity }: { activity: Activity }) {
     <div className="flex h-full min-h-0 flex-col bg-paper">
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto max-w-3xl px-8 py-8">
+          <RiskAlert findings={risk} held={held} />
+
           {/* ---- Heading ---- */}
           <header className="animate-rise">
             <div className="flex flex-wrap items-center gap-2">
@@ -191,7 +198,34 @@ export function CaseFile({ activity }: { activity: Activity }) {
 
       {/* ---- Decision bar ---- */}
       <footer className="shrink-0 border-t border-rule bg-surface px-8 py-4">
-        {error ? (
+        {error?.isBlocked && error.findings?.length ? (
+          <div
+            role="alert"
+            data-testid="draft-blocked"
+            className="mb-3 rounded-lg border-2 border-red-300 bg-red-50/80 p-4 dark:border-red-900/60 dark:bg-red-950/30"
+          >
+            <p className="text-sm font-semibold">
+              Not sent. This wording is a fair housing problem.
+            </p>
+            <ul className="mt-2 space-y-2">
+              {error.findings.map((f) => (
+                <li key={f.id + f.detail} className="text-sm">
+                  <span className="font-medium">{f.detail}</span>
+                  <br />
+                  <span className="text-muted">{f.guidance}</span>
+                  {f.citation ? (
+                    <span className="ml-1 font-mono text-[0.6875rem] text-muted">
+                      ({f.citation})
+                    </span>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-xs text-muted">
+              Edit the reply and try again. Nothing was sent.
+            </p>
+          </div>
+        ) : error ? (
           <p role="alert" className="mb-3 text-sm text-critical">
             {error.isConflict
               ? 'This activity was already resolved. Refresh to see its current state.'

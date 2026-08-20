@@ -68,11 +68,19 @@ describe('ingestion', () => {
   it('classifies every fixture and files it pending', async () => {
     const queue = await pending();
 
-    // Seven fixtures, spanning every intent branch including the one that
-    // deliberately produces no draft.
-    expect(queue).toHaveLength(7);
+    // Eight fixtures. All file pending here because this harness installs no
+    // guard; the eighth is a wire-fraud attempt that a guard would hold, and
+    // that behaviour is covered separately below.
+    expect(queue).toHaveLength(8);
     expect(queue.some((a) => a.draft === null)).toBe(true);
     expect(queue.every((a) => a.status === 'pending')).toBe(true);
+  });
+
+  it('leaves the queue unguarded when no guard is installed', async () => {
+    // The open-source platform must run identically with no safety layer
+    // present. Nothing is held and no activity carries findings.
+    const queue = await pending();
+    expect(queue.every((a) => a.risk.length === 0)).toBe(true);
   });
 
   it('is idempotent across repeated polls', async () => {
@@ -108,7 +116,7 @@ describe('ingestion', () => {
       (e: { action: string }) => e.action === 'activity.created',
     );
 
-    expect(created).toHaveLength(7);
+    expect(created).toHaveLength(8);
     expect(created.every((e: { actor: string }) => e.actor === 'system')).toBe(true);
   });
 });

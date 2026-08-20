@@ -1,3 +1,4 @@
+import type { RiskFinding } from '@reap/shared';
 import type {
   Activity,
   ActivityStatus,
@@ -25,6 +26,8 @@ export class ApiError extends Error {
     readonly code: string,
     message: string,
     readonly issues?: Array<{ path: string; message: string }>,
+    /** Guard findings when a send was refused. */
+    readonly findings?: RiskFinding[],
   ) {
     super(message);
     this.name = 'ApiError';
@@ -33,6 +36,11 @@ export class ApiError extends Error {
   /** True when the activity was already approved or dismissed elsewhere. */
   get isConflict(): boolean {
     return this.status === 409;
+  }
+
+  /** True when a guard refused the outbound copy. */
+  get isBlocked(): boolean {
+    return this.code === 'draft_blocked';
   }
 }
 
@@ -71,7 +79,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (!response.ok) {
     const error =
       payload && typeof payload === 'object' && 'error' in payload
-        ? (payload.error as { code?: string; message?: string; issues?: never })
+        ? (payload.error as {
+            code?: string;
+            message?: string;
+            issues?: never;
+            findings?: RiskFinding[];
+          })
         : null;
 
     throw new ApiError(
@@ -79,6 +92,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       error?.code ?? 'unknown',
       error?.message ?? `Request failed with status ${response.status}`,
       error?.issues,
+      error?.findings,
     );
   }
 

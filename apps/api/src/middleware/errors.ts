@@ -3,6 +3,7 @@ import { ZodError } from 'zod';
 import { logger } from '../logger.js';
 import {
   ActivityAlreadyResolvedError,
+  DraftBlockedError,
   ActivityNotFoundError,
   NothingToSendError,
 } from '../services/activityService.js';
@@ -82,6 +83,20 @@ export function errorHandler(
 
   if (err instanceof ActivityAlreadyResolvedError) {
     res.status(409).json({ error: { code: 'conflict', message: err.message } });
+    return;
+  }
+
+  if (err instanceof DraftBlockedError) {
+    // 422 rather than 403: the request is well formed and the agent is
+    // permitted to send, but the content itself is not sendable. The findings
+    // travel with the response so the interface can point at the exact phrase.
+    res.status(422).json({
+      error: {
+        code: 'draft_blocked',
+        message: err.message,
+        findings: err.findings,
+      },
+    });
     return;
   }
 

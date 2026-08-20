@@ -37,6 +37,7 @@ const baseActivity: Activity = {
   createdAt: '2026-07-29T12:01:00.000Z',
   resolvedAt: null,
   error: null,
+  risk: [],
 };
 
 function renderWithClient(ui: ReactElement) {

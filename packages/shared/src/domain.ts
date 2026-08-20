@@ -221,6 +221,13 @@ export const activityStatusSchema = z.enum([
   'approved',
   'dismissed',
   'failed',
+  /**
+   * Withheld by a safety check. A held activity is not merely low confidence;
+   * something about it is dangerous enough that approving it in one click
+   * would be a mistake. The UI must explain why and require the agent to
+   * acknowledge the reason before the normal actions become available.
+   */
+  'held',
 ]);
 export type ActivityStatus = z.infer<typeof activityStatusSchema>;
 
@@ -231,6 +238,32 @@ export const draftEmailSchema = z.object({
   attachments: z.array(z.string().max(200)).max(10),
 });
 export type DraftEmail = z.infer<typeof draftEmailSchema>;
+
+/** How seriously a guard finding should be taken. */
+export const riskLevelSchema = z.enum(['critical', 'elevated', 'advisory']);
+export type RiskLevel = z.infer<typeof riskLevelSchema>;
+
+/**
+ * A reason the system is not willing to let something through unexamined.
+ *
+ * Findings are produced by guards, never by the classifier. The distinction
+ * matters: the classifier says what a message *is*, a guard says what would go
+ * wrong if you acted on it.
+ */
+export const riskFindingSchema = z.object({
+  id: z.string().min(1).max(64),
+  level: riskLevelSchema,
+  /** One line, readable at a glance in a queue. */
+  title: z.string().min(1).max(160),
+  /** What was detected, in plain language. */
+  detail: z.string().max(600),
+  /** What the agent should do about it. */
+  guidance: z.string().max(600),
+  /** Which check produced this, for the ledger. */
+  source: z.string().max(64),
+  citation: z.string().max(120).nullable().default(null),
+});
+export type RiskFinding = z.infer<typeof riskFindingSchema>;
 
 export const activitySchema = z.object({
   id: idSchema,
@@ -249,6 +282,11 @@ export const activitySchema = z.object({
   resolvedAt: isoDateTime.nullable(),
   /** Set when status is 'failed'. */
   error: z.string().max(500).nullable(),
+  /**
+   * Safety findings from the guard layer. Empty on an ordinary activity.
+   * A non-empty list at `critical` is what puts an activity in `held`.
+   */
+  risk: z.array(riskFindingSchema).max(20).default([]),
 });
 export type Activity = z.infer<typeof activitySchema>;
 
@@ -268,6 +306,8 @@ export const auditActionSchema = z.enum([
   'activity.modified',
   'activity.dismissed',
   'activity.failed',
+  'activity.held',
+  'activity.released',
   'document.generated',
   'document.deleted',
   'lead.created',

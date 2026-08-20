@@ -38,6 +38,23 @@ const envSchema = z.object({
   GMAIL_REDIRECT_URI: z.string().optional(),
   GMAIL_REFRESH_TOKEN: z.string().optional(),
 
+  /**
+   * Module specifier for an optional guard, e.g. '@reap-pro/guard'. Unset in
+   * the standalone build, in which case no safety layer is loaded and the
+   * platform behaves exactly as it always has.
+   */
+  GUARD_MODULE: z.string().optional(),
+  /** Party domains trusted on live transactions, comma separated. */
+  KNOWN_DOMAINS: z
+    .string()
+    .default('')
+    .transform((v) =>
+      v
+        .split(',')
+        .map((d) => d.trim().toLowerCase())
+        .filter(Boolean),
+    ),
+
   CLASSIFIER: z.enum(['rules', 'anthropic']).default('rules'),
   ANTHROPIC_API_KEY: z.string().optional(),
   ANTHROPIC_MODEL: z.string().default('claude-sonnet-5'),

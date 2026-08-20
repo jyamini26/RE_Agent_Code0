@@ -6,6 +6,7 @@ import path from 'node:path';
 import { createApp } from '../app.js';
 import type { Container } from '../container.js';
 import { createContainer } from '../container.js';
+import type { Guard } from '../services/guard/index.js';
 import { seed } from '../db/seed.js';
 import { RulesClassifier } from '../services/classifier/rules.js';
 import { SimulatedInboxProvider } from '../services/inbox/simulated.js';
@@ -49,7 +50,9 @@ export interface Harness {
  * Each test gets its own isolated instance, so they can run in parallel and
  * cannot leak state into one another.
  */
-export function createHarness(options: { seeded?: boolean } = {}): Harness {
+export function createHarness(
+  options: { seeded?: boolean; guard?: Guard | null } = {},
+): Harness {
   const documentsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'reap-test-'));
   const mailer = new StubMailer();
 
@@ -59,6 +62,7 @@ export function createHarness(options: { seeded?: boolean } = {}): Harness {
     mailer,
     classifier: new RulesClassifier(),
     inbox: new SimulatedInboxProvider(),
+    guard: options.guard ?? null,
   });
 
   if (options.seeded !== false) {

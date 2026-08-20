@@ -7,6 +7,7 @@ import type { Classifier } from './classifier/index.js';
 import type { InboxProvider } from './inbox/types.js';
 import { buildSuggestion } from './suggestions.js';
 import { logger } from '../logger.js';
+import type { Guard } from './guard/index.js';
 
 export interface IngestionOptions {
   inbox: InboxProvider;
@@ -18,6 +19,10 @@ export interface IngestionOptions {
   agent: AgentProfile;
   pollIntervalMs: number;
   maxResults: number;
+  /** Optional safety layer. Absent in the standalone open-source build. */
+  guard?: Guard | null;
+  /** Party domains already trusted on live transactions. */
+  knownDomains?: readonly string[];
 }
 
 export interface IngestionResult {
@@ -139,9 +144,19 @@ export class IngestionService {
       property,
     });
 
+    // The guard runs before anything is queued, so a dangerous message never
+    // sits in the review list looking like ordinary work.
+    const verdict = this.options.guard
+      ? this.options.guard.inspectInbound(message, {
+          knownDomains: this.options.knownDomains ?? [],
+          firstTimeSender: lead === null,
+        })
+      : null;
+
     const activity = this.options.activities.create({
       message,
       classification,
+      risk: verdict?.findings ?? [],
       rationale: suggestion.rationale,
       proposedActions: suggestion.proposedActions,
       draft: suggestion.draft,
@@ -163,8 +178,34 @@ export class IngestionService {
         classifier: classification.classifier,
         signals: classification.signals,
         drafted: suggestion.draft !== null,
+        risk: verdict?.findings.map((f) => f.id) ?? [],
       },
     });
+
+    // A hold is recorded separately from creation. On audit, "why was this not
+    // acted on" is a different question from "what arrived", and the answer
+    // needs to be legible without reconstructing it from the message body.
+    if (activity.status === 'held' && verdict) {
+      for (const finding of verdict.findings) {
+        this.options.audit.record({
+          actor: 'system',
+          action: 'activity.held',
+          subjectType: 'activity',
+          subjectId: activity.id,
+          summary: `Held: ${finding.title}`,
+          detail: {
+            level: finding.level,
+            source: finding.source,
+            detail: finding.detail,
+            guidance: finding.guidance,
+          },
+        });
+      }
+      logger.warn(
+        `[guard] held "${message.subject}" from ${message.fromEmail}: ` +
+          verdict.findings.map((f) => f.title).join('; '),
+      );
+    }
 
     return activity;
   }
