@@ -52,13 +52,17 @@ describe('leads', () => {
   it('summarises the pipeline with every stage present', async () => {
     const response = await request(harness.app).get('/api/leads/summary').expect(200);
 
-    expect(response.body.data.stages).toHaveLength(6);
+    // Seven: the six pipeline stages plus `lost`, which is an exit rather
+    // than a step. `closed` is the terminal success state, distinct from
+    // `closing`, which only means in escrow.
+    expect(response.body.data.stages).toHaveLength(7);
     expect(response.body.data.stages.map((s: { stage: string }) => s.stage)).toEqual([
       'new',
       'qualified',
       'showing',
       'offer',
       'closing',
+      'closed',
       'lost',
     ]);
   });

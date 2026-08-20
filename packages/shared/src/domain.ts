@@ -93,16 +93,32 @@ export function daysOnMarket(property: Property, now: Date = new Date()): number
 // ---------------------------------------------------------------------------
 
 /** Ordered: the pipeline board renders columns in exactly this sequence. */
-export const LEAD_STAGES = [
+/**
+ * The forward path a deal travels, in order.
+ *
+ * `closing` means in escrow; `closed` means escrow completed and the deal is
+ * done. They are different states and conflating them leaves every successful
+ * transaction sitting in `closing` forever, with no way to tell a deal that
+ * funded from one still waiting on a lender.
+ *
+ * `lost` is deliberately absent. It is an exit from the pipeline rather than a
+ * step along it, and including it here is what previously made "advance" on a
+ * deal in escrow move it to Lost.
+ */
+export const LEAD_PIPELINE = [
   'new',
   'qualified',
   'showing',
   'offer',
   'closing',
-  'lost',
+  'closed',
 ] as const;
 
+/** Every valid stage, including the terminal exit. Used for validation. */
+export const LEAD_STAGES = [...LEAD_PIPELINE, 'lost'] as const;
+
 export const leadStageSchema = z.enum(LEAD_STAGES);
+export type PipelineStage = (typeof LEAD_PIPELINE)[number];
 export type LeadStage = z.infer<typeof leadStageSchema>;
 
 export const leadTemperatureSchema = z.enum(['hot', 'warm', 'cold']);

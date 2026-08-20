@@ -1,5 +1,6 @@
 import type { Lead, LeadStage } from '@reap/shared';
 import {
+  LEAD_PIPELINE,
   LEAD_STAGES,
   formatPriceCompact,
   formatRelativeTime,
@@ -48,14 +49,16 @@ export function Pipeline() {
           {/* Columns carry their own divider so the track's background does
               not show as dead colour to the right of the last stage. */}
           <div className="flex h-full min-w-max bg-paper">
-            {LEAD_STAGES.map((stage) => {
+            {[...LEAD_PIPELINE, 'lost' as const].map((stage) => {
               const items = byStage.get(stage) ?? [];
               const total = totals.get(stage);
 
               return (
                 <section
                   key={stage}
-                  className="flex h-full w-[248px] min-w-0 flex-col border-r border-rule bg-paper"
+                  className={`flex h-full w-[248px] min-w-0 flex-col border-r border-rule ${
+                    stage === 'lost' ? 'bg-surface/60' : 'bg-paper'
+                  }`}
                 >
                   <header className="sticky top-0 border-b border-rule bg-surface px-4 py-2.5">
                     <div className="flex items-baseline justify-between gap-2">
@@ -111,10 +114,16 @@ function LeadCard({
   busy: boolean;
   onMove: (stage: LeadStage) => void;
 }) {
-  const position = LEAD_STAGES.indexOf(lead.stage);
-  const previous = position > 0 ? LEAD_STAGES[position - 1] : undefined;
+  // Navigation follows the pipeline, not the full stage list. Deriving it from
+  // LEAD_STAGES put `lost` immediately after `closing`, so advancing a deal in
+  // escrow marked it lost.
+  const position = (LEAD_PIPELINE as readonly LeadStage[]).indexOf(lead.stage);
+  const inPipeline = position !== -1;
+  const previous = inPipeline && position > 0 ? LEAD_PIPELINE[position - 1] : undefined;
   const next =
-    position < LEAD_STAGES.length - 1 ? LEAD_STAGES[position + 1] : undefined;
+    inPipeline && position < LEAD_PIPELINE.length - 1
+      ? LEAD_PIPELINE[position + 1]
+      : undefined;
 
   return (
     <article

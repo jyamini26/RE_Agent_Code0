@@ -251,13 +251,22 @@ export class ActivityService {
   }
 }
 
-/** Progression order. `lost` is terminal and never a target of advancement. */
+/**
+ * Progression order.
+ *
+ * `lost` ranks below everything so it is never a target of automatic
+ * advancement, and a lost lead is never dragged back into the pipeline by an
+ * inbound message. `closed` is the terminal success state and nothing advances
+ * into it automatically: escrow closing is a fact the agent confirms, not
+ * something inferred from an email.
+ */
 const STAGE_RANK: Record<LeadStage, number> = {
   new: 0,
   qualified: 1,
   showing: 2,
   offer: 3,
   closing: 4,
+  closed: 5,
   lost: -1,
 };
 
