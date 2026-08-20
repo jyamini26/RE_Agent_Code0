@@ -28,6 +28,10 @@ npm run dev
 
 Open <http://localhost:5173>.
 
+**Not a developer?** Double-click `scripts/start-reap.command` instead. It
+checks prerequisites, installs, starts, and opens the browser, explaining any
+problem in plain language. See [docs/TESTING.md](docs/TESTING.md).
+
 **No `.env`, no API keys, no database to install.** On first boot the API
 creates a SQLite file, seeds four listings and seven leads, and replays a
 scripted inbox through the classifier, so the dashboard is populated the moment
@@ -36,7 +40,7 @@ it loads. Copy `.env.example` to `.env` only when you want to change something.
 | Command             | Effect                                   |
 | ------------------- | ---------------------------------------- |
 | `npm run dev`       | API on `:3001`, web on `:5173` (proxied) |
-| `npm test`          | 133 tests across all three workspaces    |
+| `npm test`          | 150 tests across all three workspaces    |
 | `npm run typecheck` | `tsc --noEmit` everywhere                |
 | `npm run lint`      | ESLint                                   |
 | `npm run build`     | Production build of every workspace      |
