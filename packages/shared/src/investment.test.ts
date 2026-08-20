@@ -39,8 +39,7 @@ describe('analyzeInvestment', () => {
 
   it('excludes debt service from NOI but not from cash flow', () => {
     const r = analyzeInvestment(base);
-    const annualDebtService =
-      r.monthlyExpenses.mortgagePrincipalAndInterest * 12;
+    const annualDebtService = r.monthlyExpenses.mortgagePrincipalAndInterest * 12;
     expect(r.annualNoi - annualDebtService).toBeCloseTo(r.annualCashFlow, 1);
   });
 
@@ -94,9 +93,7 @@ describe('analyzeInvestment', () => {
   });
 
   it('rejects a zero purchase price instead of returning Infinity', () => {
-    expect(() =>
-      analyzeInvestment({ purchasePrice: 0, monthlyRent: 3_000 }),
-    ).toThrow();
+    expect(() => analyzeInvestment({ purchasePrice: 0, monthlyRent: 3_000 })).toThrow();
   });
 
   it('rejects negative rent', () => {

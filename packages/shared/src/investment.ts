@@ -103,11 +103,7 @@ export function analyzeInvestment(input: InvestmentInput): InvestmentAnalysis {
   const downPayment = i.purchasePrice * (i.downPaymentPct / 100);
   const loanAmount = i.purchasePrice - downPayment;
 
-  const mortgage = monthlyMortgagePayment(
-    loanAmount,
-    i.interestRate,
-    i.loanTermYears,
-  );
+  const mortgage = monthlyMortgagePayment(loanAmount, i.interestRate, i.loanTermYears);
   const propertyTax = (i.purchasePrice * (i.propertyTaxRate / 100)) / 12;
   const insurance = i.insuranceAnnual / 12;
   const maintenance = (i.purchasePrice * (i.maintenancePct / 100)) / 12;
@@ -119,8 +115,7 @@ export function analyzeInvestment(input: InvestmentInput): InvestmentAnalysis {
 
   const monthlyCashFlow = i.monthlyRent - totalMonthly;
   const annualNoi = i.monthlyRent * 12 - operatingExpenses * 12;
-  const cashInvested =
-    downPayment + i.purchasePrice * (i.closingCostPct / 100);
+  const cashInvested = downPayment + i.purchasePrice * (i.closingCostPct / 100);
   const annualGrossRent = i.monthlyRent * 12;
 
   return {
@@ -143,13 +138,9 @@ export function analyzeInvestment(input: InvestmentInput): InvestmentAnalysis {
     annualNoi: roundCents(annualNoi),
     capRatePct: roundCents((annualNoi / i.purchasePrice) * 100),
     cashOnCashReturnPct:
-      cashInvested > 0
-        ? roundCents(((monthlyCashFlow * 12) / cashInvested) * 100)
-        : 0,
+      cashInvested > 0 ? roundCents(((monthlyCashFlow * 12) / cashInvested) * 100) : 0,
     grossRentMultiplier:
-      annualGrossRent > 0
-        ? roundCents(i.purchasePrice / annualGrossRent)
-        : null,
+      annualGrossRent > 0 ? roundCents(i.purchasePrice / annualGrossRent) : null,
     cashFlowPositive: monthlyCashFlow > 0,
   };
 }
