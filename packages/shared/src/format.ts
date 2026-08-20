@@ -22,9 +22,18 @@ export function formatPrice(value: number): string {
   return usd.format(value);
 }
 
-/** `$4.2M` — used where column width is tight, such as pipeline cards. */
+/**
+ * `$4.2M` — used where column width is tight, such as pipeline cards.
+ *
+ * The trailing `.0` is stripped explicitly rather than left to the formatter.
+ * ICU disagrees with itself across Node releases on whether compact notation
+ * emits it, so `$845,000` renders as `$845K` on one runtime and `$845.0K` on
+ * another. Normalising here keeps a brochure generated on a server identical
+ * to the same figure rendered in the browser, which is the entire point of
+ * this module.
+ */
 export function formatPriceCompact(value: number): string {
-  return compactUsd.format(value);
+  return compactUsd.format(value).replace(/\.0(?=\D*$)/, '');
 }
 
 export function formatNumber(value: number): string {

@@ -26,6 +26,19 @@ describe('formatPriceCompact', () => {
   it('abbreviates thousands', () => {
     expect(formatPriceCompact(845_000)).toBe('$845K');
   });
+
+  // ICU emits a trailing `.0` on some Node releases and not others, which made
+  // this suite pass locally and fail in CI. These pin the normalised output.
+  it('never emits a trailing .0 on a whole compact value', () => {
+    expect(formatPriceCompact(845_000)).not.toMatch(/\.0[A-Z]/);
+    expect(formatPriceCompact(1_000_000)).toBe('$1M');
+    expect(formatPriceCompact(2_000_000_000)).toBe('$2B');
+  });
+
+  it('keeps a meaningful fractional digit', () => {
+    expect(formatPriceCompact(1_250_000)).toBe('$1.3M');
+    expect(formatPriceCompact(845_500)).toBe('$845.5K');
+  });
 });
 
 describe('formatPricePerSqft', () => {
